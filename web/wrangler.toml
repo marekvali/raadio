@@ -5,3 +5,6 @@ compatibility_date = "2026-09-01"
 [[r2_buckets]]
 binding = "KUKU"
 bucket_name = "raadio"
+
+AUTH_USER = "raadiomarek"
+AUTH_PASS = "KuulanRaadiotSiisKuiTahan"
