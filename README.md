@@ -139,4 +139,4 @@ Lokaalselt parooli vältimiseks lisa `.dev.vars` faili `DEV_NO_AUTH=1` (töötab
 
 ## Litsents
 
-MIT – vt [LICENSE](LICENSE). Litsents puudutab ainult koodi, mitte salvestatavat sisu.
+MIT – vt [LICENSE](LICENSE). Litsents puudutab ainult koodi, mitte salvestatavat sisu. 
