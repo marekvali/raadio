@@ -6,7 +6,7 @@ See fail on mõeldud AI-agendile (Claude Code, Cursor, Codex jt), kes aitab kasu
 
 Isiklik ajanihke-salvesti Eesti raadiojaamade **vabalt edastatavale otse-eetrile**: kasutaja valib veebilehel saated või seab taimeri, kasutaja enda arvuti (Mac, Windows või Linux) salvestab need ffmpeg-iga mono-MP3-na ja kasutaja kuulab neid hiljem telefonist. Sarnane raadiost lindistamisele.
 
-Jaamad: Raadio Kuku, Vikerraadio, Raadio 2, Klassikaraadio, Raadio 4, Raadio Tallinn, Sky Plus, Retro FM, Rock FM (`web/stations.json`).
+Jaamad: Raadio Kuku, Vikerraadio, Raadio 2, Klassikaraadio, Raadio 4, Raadio Tallinn, Sky Plus, Retro FM, Rock FM, Äripäeva raadio (`web/stations.json`).
 
 ## Piirid – järgi alati
 
@@ -34,15 +34,16 @@ R2:                  arvuti = salvesti ──▶ Cloudflare R2 ◀── Cloudfl
 | `site/install`, `site/install.ps1`, `site/linux` | ühe käsu alglaadijad (laevad repo alla ja käivitavad paigalduse) |
 | `web/functions/` | Cloudflare Pages Functions (R2 režiim): `api/schedule`, `api/config`, `api/status`, `api/recordings`, `audio/*`, `_middleware.js` (parool) |
 | `web/public/index.html` | kogu kasutajaliides (üks fail, vanilla JS), `sw.js` = offline/telefoni laadimine |
-| `web/stations.json` | jaamad: id, nimi, voo URL, kava tüüp (`kuku`, `sky` = salvesti laeb; `err` = brauseris) |
+| `web/stations.json` | jaamad: id, nimi, voo URL, kava tüüp (`kuku`, `sky`, `aripaev` = salvesti laeb – Äripäev saatekava lehe andmetest, iga 6 h; `err` = kasutaja toob järjehoidjaga) |
 
 ### Andmed salvestuses (kaust või R2 bucket)
 
-- `config.json` – kasutaja valikud (veebileht kirjutab, salvesti loeb): `shows` (terve saade, `keep` = mitu viimast saatepäeva alles), `episodes` (konkreetsed ajad; `auto: true` = brauser koostas ERR-i saate tellimusest), `timers` (jaam + nädalapäevad 0=E … 6=P + `HH:MM`).
-- `schedule.json` – serveripoolne kava (Kuku ja Sky Media jaamad).
+- `config.json` – kasutaja valikud (veebileht kirjutab, salvesti loeb): `shows` (terve saade, `keep` = mitu viimast saatepäeva alles), `episodes` (konkreetsed ajad; `auto: true` = brauser koostas ERR-i saate tellimusest), `timers` (jaam + nädalapäevad 0=E … 6=P + `HH:MM`; id `timer:<jaam>-<nimi>` – püsiv, et podcasti-feedi aadress jääks samaks).
+- `schedule.json` – serveripoolne kava (Kuku, Sky Media jaamad, Äripäeva raadio).
+- `err_schedule.json` – ERR-i kava, mille kasutaja tõi ERR-i lehelt järjehoidjaga (`/api/err-schedule`; vt veaotsing). Veebileht koostab sellest tellitud saadete episoodid (`config.episodes`, `auto: true`).
 - `status.json` – salvesti olek (uuendub ~20 s järel; veebileht näitab „Salvesti vaikib“, kui üle 3 min vana).
 - `rec/<kuupäev>_<HHMM>_<jaam>_<saade>.mp3` + `.json` (metaandmed) – valmis salvestused.
-- `config.json` → `feed_token` – privaatse podcasti-feedi võti: `/feed/<võti>/koik.xml`, `/feed/<võti>/<saate-slug>.xml`, helifailid `/feed/<võti>/audio/rec/…`. Võti asendab parooli ainult nende aadresside jaoks (`web/functions/feed/`, `recorder/webserver.py`). Soovita AntennaPodi / Apple Podcastsi; mitte serveripõhiseid rakendusi (Pocket Casts, Overcast), sest need lekitaksid võtme ja ei ulatu kohtvõrku.
+- `config.json` → `feed_token` – privaatse podcasti-feedi võti: `/feed/<võti>/koik.xml`, `/feed/<võti>/<saate-slug>.xml`, helifailid `/feed/<võti>/audio/rec/…`. Saate feedi aadress tuleb saate/taimeri id-st – kustutamine ja uuesti lisamine ei muuda seda (muutub ainult võtme vahetamisel). Võti asendab parooli ainult nende aadresside jaoks (`web/functions/feed/`, `recorder/webserver.py`). Soovita AntennaPodi / Apple Podcastsi; mitte serveripõhiseid rakendusi (Pocket Casts, Overcast), sest need lekitaksid võtme ja ei ulatu kohtvõrku.
 - „Salvesta kohe“ = `config.episodes` kirje id-ga `now:<jaam>:<ms>` (saade `now:<jaam>`, nt „Vikerraadio (otse)“); kirje eemaldamine lõpetab käimasoleva salvestuse (`Recorder.cancel`), salvestatu laaditakse üles.
 - `live/…` – pooleli salvestus (uueneb iga 2 min, et seda saaks kuulata); kokkujooksmisel päästetakse sildiga „katkestatud“.
 
@@ -91,7 +92,7 @@ Logi: macOS `~/Library/Logs/raadiosalvestaja.log`, Windows `%LOCALAPPDATA%\Raadi
 - **Ununenud parool / kasutajanimi:** `raadio parool` (kasutaja sisestab ise – ära küsi parooli chatti).
 - **Teine salvestuskaust / port:** `config.env` (`LOCAL_DIR`, `WEB_PORT`) → `raadio restart`.
 - **Kodust väljas ligipääs (kohalik režiim):** Tailscale mõlemasse seadmesse, arvutis `tailscale serve --bg 8788` → `https://<arvuti>.<tailnet>.ts.net` (https-iga töötab ka telefoni laadimine).
-- **Uuendamine:** `raadio update` (või paigalduskäsk uuesti) – seaded ja salvestused jäävad alles. Salvesti kontrollib 12 h järel `https://raadio.mastering.ee/version.json` vs paigalduse `VERSION` faili (`UPDATE_CHECK=0` lülitab välja); teade on `status.json` → `update`. Git-arenduskoopias `VERSION`-it pole – seal uuendusi ei kontrollita ja `raadio update` keeldub (kasuta `git pull`).
+- **Uuendamine:** `raadio update` (või paigalduskäsk uuesti) – seaded ja salvestused jäävad alles. Salvesti kontrollib 12 h järel `https://raadio.mastering.ee/version.json` vs paigalduse `VERSION` faili (`UPDATE_CHECK=0` lülitab välja); teade on `status.json` → `update`. Git-arenduskoopias `VERSION`-it pole – seal uuendusi ei kontrollita ja `raadio update` keeldub (kasuta `git pull`). **R2:** `raadio update` uuendab ainult salvestit; veebileht (Pages) tuleb kasutaja fork'ist → GitHubis *Sync fork → Update branch* (leht võrdleb oma `/version.json`-i salvesti `status.json` → `version_date`-iga ja näitab „⬆ Uuenda veebilehte“).
 - **Eemaldamine:** `raadio stop`, eemalda taustateenus (macOS: `launchctl bootout gui/$(id -u)/ee.raadiosalvestaja` ja kustuta plist; Windows: `Unregister-ScheduledTask -TaskName Raadiosalvestaja -Confirm:$false` ja kustuta `%LOCALAPPDATA%\Microsoft\WindowsApps\raadio.cmd`; Linux: `systemctl --user disable --now raadiosalvestaja`, kustuta `~/.config/systemd/user/raadiosalvestaja.service` ja `~/.local/bin/raadio`), kustuta rakenduse kaust. Salvestused ja seaded on eraldi (`~/Music/Raadiosalvestaja`, `~/.config/raadiosalvestaja`) – küsi enne kustutamist.
 
 ## Veaotsing
@@ -101,7 +102,7 @@ Logi: macOS `~/Library/Logs/raadiosalvestaja.log`, Windows `%LOCALAPPDATA%\Raadi
 | Leht ütleb „Salvesti vaikib“ | `raadio` – kas teenus töötab; `raadio log`; arvuti unerežiimis? |
 | Leht ei avane, „took too long to respond“ | IP-aadress võis muutuda (DHCP) või on valesti tipitud – `raadio` näitab kehtivat; samas arvutis kasuta `http://localhost:8788`; püsiv aadress = IP reserveerimine ruuteris |
 | Telefon ei ava kohalikku lehte | sama Wi-Fi? Windows: tulemüüri reegel `Raadiosalvestaja` (privaatvõrk); `raadio url` õige IP? |
-| ERR-i kava ei lae | laeb brauseris – kontrolli brauseri konsooli; serveri poolt seda ei laeta (robotikaitse) |
+| ERR-i kava ei lae | ERR-i raadiod on nüüd `eestiraadio.err.ee` all; uus API (`/api/v1/getSchedule/<kanal>/<kesköö unix>?adjacentDays=1`) ei luba teistelt saitidelt päringuid (CORS) ja on robotikaitse taga – **ära möödu** (ei proxy't, `curl`-i, peidetud brauserit ega brauseri matkimist). Lahendus: kasutaja toob kava ise – Kava → ERR-i jaam → lohista nupp „📻 ERR → Raadiosalvesti“ järjehoidjaribale (riba peab olema nähtav – Chrome: Seaded → Välimus → Järjehoidjariba → Kuva alati), ava eestiraadio.err.ee ja klõpsa seda (ERR annab ~9 päeva; tellitud saadete nädalamustrit jätkab salvesti ise – `err_planned`, id `<saade>@<päev>T<HHMM>` – kuni kasutaja tellimust muudab, ka siis, kui kava on vana; uuenda, kui ERR kava muudab; arvutis, hüpikaknad lubatud). Ilma kavata: taimer või ⏺ Salvesta |
 | Salvestus tühi / katkeb | `raadio test 20 <jaam>`; voo URL muutunud? (`stations.json`, Kuku jaoks ka `KUKU_STREAM_URL`) |
 | Podcastirakendus ei uuenda | kohalikus režiimis peab telefon lehe aadressini ulatuma (koduvõrk/Tailscale); kas võti vahetati? (`raadio url`, „Minu saated“ → Podcast) |
 | Telefoni laadimise nupp puudub | vajab https-i (Pages või Tailscale); tavalise `http://…:8788` peal saab ainult MP3 failina salvestada |
